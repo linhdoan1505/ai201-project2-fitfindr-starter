@@ -94,7 +94,46 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     """
     # TODO: implement the planning loop
     session = _new_session(query, wardrobe)
-    session["error"] = "Planning loop not yet implemented."
+
+    description = query
+    size = None
+    max_price = None
+
+    if "$30" in query or "30" in query:
+        max_price = 30
+    elif "$5" in query or "5" in query:
+        max_price = 5
+
+    if "size M" in query or "size m" in query:
+        size = "M"
+    elif "size XXS" in query or "size xxs" in query:
+        size = "XXS"
+
+    session["parsed"] = {
+        "description": description,
+        "size": size,
+        "max_price": max_price,
+    }
+
+    results = search_listings(description, size, max_price)
+    session["search_results"] = results
+
+    if len(results) == 0:
+        session["error"] = (
+            "No matching listings found. Try a broader description, "
+            "a different size, or a higher budget."
+        )
+        return session
+
+    selected_item = results[0]
+    session["selected_item"] = selected_item
+
+    outfit = suggest_outfit(selected_item, wardrobe)
+    session["outfit_suggestion"] = outfit
+
+    fit_card = create_fit_card(outfit, selected_item)
+    session["fit_card"] = fit_card
+
     return session
 
 

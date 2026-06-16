@@ -15,54 +15,75 @@ You must have at least 3 tools. The three required tools are listed — add any 
 ### Tool 1: search_listings
 
 **What it does:**
-<!-- Describe what this tool does in 1–2 sentences -->
+
+Searches the listings dataset for secondhand clothing items matching the user's description, size preference, and maximum price. Returns all matching listings sorted by relevance.
 
 **Input parameters:**
-<!-- List each parameter, its type, and what it represents -->
-- `description` (str): ...
-- `size` (str): ...
-- `max_price` (float): ...
+
+- `description` (str): Keywords describing the item the user wants.
+- `size` (str): Desired clothing size. Can be None.
+- `max_price` (float): Maximum amount the user is willing to spend.
 
 **What it returns:**
-<!-- Describe the return value — what fields does a result contain? -->
+
+A list of matching listing dictionaries. Each listing contains fields such as:
+- id
+- title
+- description
+- category
+- style_tags
+- size
+- condition
+- price
+- colors
+- brand
+- platform
 
 **What happens if it fails or returns nothing:**
-<!-- What should the agent do if no listings match? -->
+
+Returns an empty list `[]`. The agent stores an error message and stops instead of calling later tools.
 
 ---
 
 ### Tool 2: suggest_outfit
 
 **What it does:**
-<!-- Describe what this tool does in 1–2 sentences -->
+
+Uses the selected listing and the user's wardrobe to suggest a complete outfit. The recommendation should explain how the new item fits with existing clothes.
 
 **Input parameters:**
-<!-- List each parameter, its type, and what it represents -->
-- `new_item` (dict): ...
-- `wardrobe` (dict): ...
+
+- `new_item` (dict): The selected clothing item returned by search_listings.
+- `wardrobe` (dict): The user's wardrobe data.
 
 **What it returns:**
-<!-- Describe the return value -->
+
+A string containing one or more outfit recommendations and styling advice.
 
 **What happens if it fails or returns nothing:**
-<!-- What should the agent do if the wardrobe is empty or no outfit can be suggested? -->
+
+If the wardrobe is empty, returns general styling advice using the new item. It should never crash or return an empty string.
 
 ---
 
 ### Tool 3: create_fit_card
 
 **What it does:**
-<!-- Describe what this tool does in 1–2 sentences -->
+
+Creates a short, social-media-style caption describing the completed outfit. The output should sound shareable and personal.
 
 **Input parameters:**
-<!-- List each parameter, its type, and what it represents -->
-- `outfit` (...): ...
+
+- `outfit` (str): Outfit recommendation produced by suggest_outfit.
+- `new_item` (dict): Selected clothing item.
 
 **What it returns:**
-<!-- Describe the return value -->
+
+A short caption suitable for Instagram, TikTok, or a fashion-sharing app.
 
 **What happens if it fails or returns nothing:**
-<!-- What should the agent do if the outfit data is incomplete? -->
+
+Returns a descriptive error message such as "Unable to create fit card because outfit information is missing."
 
 ---
 
@@ -74,41 +95,85 @@ You must have at least 3 tools. The three required tools are listed — add any 
 
 ## Planning Loop
 
-**How does your agent decide which tool to call next?**
-<!-- Describe the logic your planning loop uses. What does it look at? What conditions change its behavior? How does it know when it's done? -->
+1. Receive user query.
+
+2. Call search_listings(description, size, max_price).
+
+3. If no results are returned:
+   - Store an error message in session["error"].
+   - Stop execution.
+   - Do not call any other tools.
+
+4. If results are returned:
+   - Select the first result.
+   - Store it in session["selected_item"].
+
+5. Call suggest_outfit(selected_item, wardrobe).
+
+6. Store the returned outfit suggestion in session["outfit_suggestion"].
+
+7. Call create_fit_card(outfit_suggestion, selected_item).
+
+8. Store the result in session["fit_card"].
+
+9. Return the completed session.
 
 ---
 
 ## State Management
 
-**How does information from one tool get passed to the next?**
-<!-- Describe how your agent stores and accesses state within a session. What data is tracked? How is it passed between tool calls? -->
+The agent uses a session dictionary.
+
+Tracked values:
+
+- session["selected_item"]
+- session["outfit_suggestion"]
+- session["fit_card"]
+- session["error"]
+
+The selected item from search_listings is stored and passed directly into suggest_outfit. The outfit suggestion is then stored and passed into create_fit_card. This allows information to flow between tools without asking the user to repeat anything.
 
 ---
 
 ## Error Handling
 
-For each tool, describe the specific failure mode you're handling and what the agent does in response.
-
 | Tool | Failure mode | Agent response |
 |------|-------------|----------------|
-| search_listings | No results match the query | |
-| suggest_outfit | Wardrobe is empty | |
-| create_fit_card | Outfit input is missing or incomplete | |
+| search_listings | No results match the query | Store error message and stop execution |
+| suggest_outfit | Wardrobe is empty | Return general styling advice instead of failing |
+| create_fit_card | Outfit input is missing or incomplete | Return a descriptive error message |
 
 ---
 
 ## Architecture
 
-<!-- Draw a diagram of your agent showing how the components connect:
-     User input → Planning Loop → Tools (search_listings, suggest_outfit, create_fit_card)
-                                                                          ↕
-                                                                   State / Session
-     Show what triggers each tool, how state flows between them, and where error paths branch off.
-     ASCII art, a Mermaid diagram (https://mermaid.js.org/syntax/flowchart.html), or an embedded
-     sketch are all fine. You'll share this diagram with an AI tool when asking it to implement
-     the planning loop and each individual tool. -->
-
+User Query
+     |
+     v
+Planning Loop
+     |
+     v
+search_listings()
+     |
+     +---- no results ----> Error Message -> Return
+     |
+     v
+selected_item
+     |
+     v
+suggest_outfit()
+     |
+     v
+outfit_suggestion
+     |
+     v
+create_fit_card()
+     |
+     v
+fit_card
+     |
+     v
+Return Session
 ---
 
 ## AI Tool Plan
@@ -125,8 +190,39 @@ For each tool, describe the specific failure mode you're handling and what the a
      before trusting it" is a plan. -->
 
 **Milestone 3 — Individual tool implementations:**
+For Milestone 3, I will use ChatGPT to implement each tool one at a time.
+
+For search_listings:
+- Input: Tool specification from the Tools section.
+- Output: Python function that filters listings by description, size, and price.
+- Verification: Test with at least 3 sample queries and verify returned items match the filters.
+
+For suggest_outfit:
+- Input: Tool specification and example wardrobe data.
+- Output: Python function that generates outfit recommendations.
+- Verification: Test with different wardrobe combinations and confirm recommendations are reasonable.
+
+For create_fit_card:
+- Input: Tool specification and sample outfit recommendations.
+- Output: Python function that generates a short social-media-style caption.
+- Verification: Test with multiple outfit descriptions and confirm captions are generated successfully.
 
 **Milestone 4 — Planning loop and state management:**
+For Milestone 4, I will use ChatGPT to implement the planning loop and session state.
+
+Input:
+- Planning Loop section
+- State Management section
+- Architecture diagram
+
+Expected output:
+- Agent logic that calls tools in the correct order
+- Session dictionary for storing selected_item, outfit_suggestion, fit_card, and error
+
+Verification:
+- Run a complete user query from start to finish
+- Confirm information passes correctly between tools
+- Confirm failure paths stop execution when appropriate
 
 ---
 
@@ -137,13 +233,58 @@ Write out what a full user interaction looks like from start to finish — tool 
 **Example user query:** "I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers. What's out there and how would I style it?"
 
 **Step 1:**
-<!-- What does the agent do first? Which tool is called? With what input? -->
+The agent receives the query:
+
+"I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers."
+
+The agent calls:
+
+search_listings(
+    description="vintage graphic tee",
+    size=None,
+    max_price=30
+)
+
+The tool returns matching listings.
 
 **Step 2:**
-<!-- What happens next? What was returned from step 1? What tool is called now? -->
+The agent selects the top matching listing and stores it in:
+
+session["selected_item"]
+
+The agent then calls:
+
+suggest_outfit(
+    new_item=session["selected_item"],
+    wardrobe=user_wardrobe
+)
+
+The tool returns outfit recommendations.
 
 **Step 3:**
-<!-- Continue until the full interaction is complete -->
+The agent stores the recommendation in:
+
+session["outfit_suggestion"]
+
+Then calls:
+
+create_fit_card(
+    outfit=session["outfit_suggestion"],
+    new_item=session["selected_item"]
+)
+
+The tool returns a fit card caption.
+
+The caption is stored in:
+
+session["fit_card"]
 
 **Final output to user:**
-<!-- What does the user actually see at the end? -->
+Recommended Item:
+Vintage Graphic Tee - $24
+
+Suggested Outfit:
+Pair the tee with your baggy jeans and chunky sneakers for a relaxed streetwear look.
+
+Fit Card:
+"Vintage vibes + oversized denim = today's perfect fit 🔥"

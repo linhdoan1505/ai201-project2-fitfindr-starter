@@ -69,9 +69,37 @@ def search_listings(
 
     Before writing code, fill in the Tool 1 section of planning.md.
     """
-    # Replace this with your implementation
-    return []
+    listings = load_listings()
+    results = []
 
+    for item in listings:
+        if size is not None:
+            if item.get("size", "").lower() != size.lower():
+                continue
+
+        if max_price is not None:
+            if item.get("price", 0) > max_price:
+                continue
+
+        score = 0
+        query_words = description.lower().split()
+
+        searchable_text = (
+            item.get("title", "") + " " +
+            item.get("description", "")
+        ).lower()
+
+        for word in query_words:
+            if word in searchable_text:
+                score += 1
+
+        if score > 0:
+            item["score"] = score
+            results.append(item)
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+
+    return results
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
 
@@ -101,7 +129,26 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Before writing code, fill in the Tool 2 section of planning.md.
     """
     # Replace this with your implementation
-    return ""
+    wardrobe_items = wardrobe.get("items", [])
+
+    item_name = new_item.get("title", "this item")
+
+    if len(wardrobe_items) == 0:
+        return (
+            f"{item_name} would pair well with relaxed jeans, "
+            f"neutral sneakers, and simple accessories."
+        )
+
+    outfit_text = f"Style {item_name} with "
+
+    selected_items = []
+
+    for item in wardrobe_items[:3]:
+        selected_items.append(item.get("title", "wardrobe item"))
+
+    outfit_text += ", ".join(selected_items)
+
+    return outfit_text
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -134,4 +181,16 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Before writing code, fill in the Tool 3 section of planning.md.
     """
     # Replace this with your implementation
-    return ""
+    if not outfit.strip():
+        return "Error: outfit description is missing."
+
+    item_name = new_item.get("title", "Unknown Item")
+    price = new_item.get("price", "N/A")
+    platform = new_item.get("platform", "Unknown Platform")
+
+    caption = (
+        f"Just found {item_name} for ${price} on {platform}! "
+        f"{outfit}. Definitely a fit worth saving."
+    )
+
+    return caption
